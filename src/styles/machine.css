@@ -1,0 +1,44 @@
+/* ── Machine wrapper ──────────────────────────────────────────────────────── */
+
+.machine {
+  position: absolute;
+  /* Centering and dimensions applied inline in Machine.ts */
+  transform-origin: bottom center;
+}
+
+/* Both image layers fill the wrapper identically */
+.machine__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Vibration animation when the machine is running */
+.machine--running {
+  animation: machine-vibrate 0.12s ease-in-out infinite;
+}
+
+/* ── Branch inside machine ────────────────────────────────────────────────── */
+
+/*
+ * Branches inside the machine are positioned with left:50% and a
+ * translateX(-50%) so they're horizontally centred.
+ * clip-path clips from the bottom, hiding the portion that has entered
+ * the machine. --visible-pct is set each rAF tick by ChopController.
+ * transform-origin: top center anchors vibration at the feeding hole.
+ */
+.branch--in-machine {
+  --visible-pct: 100%;
+  clip-path: inset(0 0 calc(100% - var(--visible-pct)) 0 round 0px);
+  z-index: auto;
+  transform-origin: top center;
+}
+
+/* Extra violent vibration for a stuck branch */
+.branch--stuck {
+  animation: branch-stuck-vibrate 0.08s ease-in-out infinite;
+  transform-origin: top center;
+}

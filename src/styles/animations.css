@@ -1,0 +1,43 @@
+/* ── Machine vibration (running) ──────────────────────────────────────────── */
+
+@keyframes machine-vibrate {
+  0%   { transform: translate(-50%, -50%) rotate(-0.4deg) translate(0px,  0px); }
+  25%  { transform: translate(-50%, -50%) rotate( 0.3deg) translate(1px, -1px); }
+  50%  { transform: translate(-50%, -50%) rotate( 0.4deg) translate(0px,  0px); }
+  75%  { transform: translate(-50%, -50%) rotate(-0.3deg) translate(-1px, 1px); }
+  100% { transform: translate(-50%, -50%) rotate(-0.4deg) translate(0px,  0px); }
+}
+
+/* ── Stuck branch vibration (more violent, anchored at top centre) ────────── */
+/*
+ * We only animate translateX + a small independent rotation delta.
+ * The base rotation from JS (applied via transform in applyBaseTransform)
+ * is NOT included here — CSS animations on .branch--stuck override the
+ * full transform property, so we set it fully in each keyframe.
+ * JS sets --branch-rot on the element when stuck is applied.
+ */
+@keyframes branch-stuck-vibrate {
+  0%   { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 2deg)) translateX(-2px); }
+  25%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 3deg)) translateX( 3px); }
+  50%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 1deg)) translateX(-3px); }
+  75%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 3deg)) translateX( 2px); }
+  100% { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 2deg)) translateX(-2px); }
+}
+
+/* ── HUD arrow bounce ─────────────────────────────────────────────────────── */
+
+@keyframes arrow-bounce {
+  0%   { transform: translateX(-50%) translateY(0);    }
+  50%  { transform: translateX(-50%) translateY(-8px); }
+  100% { transform: translateX(-50%) translateY(0);    }
+}
+
+/* ── Reduced-motion overrides ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .machine--running,
+  .branch--stuck,
+  .hud-arrow {
+    animation: none;
+  }
+}
