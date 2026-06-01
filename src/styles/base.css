@@ -19,7 +19,7 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-image: url('/assets/images/background.png');
+  background-image: url('/assets/images/background.jpg');
   background-size: cover;
   background-position: center;
 }

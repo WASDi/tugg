@@ -30,8 +30,11 @@ export class Game {
 
     this.machine = new Machine(this.dom.gameRoot);
 
-    this.chop = new ChopController(this.machine, (branch) =>
-      this.onBranchChopped(branch),
+    this.chop = new ChopController(
+      this.machine,
+      (branch) => this.onBranchChopped(branch),
+      (branch) => this.onChopStart(branch),
+      (branch) => this.onBranchStuck(branch),
     );
 
     this.input = new InputManager({
@@ -51,6 +54,7 @@ export class Game {
     this.spawnBranches();
     this.spawnBuckets();
     this.listenForResize();
+    this.showDebugOverlays();
   }
 
   // ── machine control ────────────────────────────────────────────────────────
@@ -210,18 +214,15 @@ export class Game {
     branch.dragX = 0;
     branch.dragY = 0;
 
-    // Position: horizontally centred in the machine, vertically above the feed hole.
-    // ChopController will set top each rAF tick; we start it above visible range.
     branch.el.style.left      = '50%';
-    branch.el.style.top       = '-100px'; // offscreen above machine until first tick
     branch.el.style.transform = `rotate(0deg)`; // will be replaced by transitionToMachineRotation
+
+    this.chop.applyChopVisual(branch, 0);
 
     branch.transitionToMachineRotation();
     branch.el.classList.add('branch--in-machine');
 
-    if (this.state.machineRunning) {
-      this.chop.addBranch(branch);
-    }
+    this.chop.addBranch(branch);
   }
 
   private onBranchChopped(branch: Branch): void {
@@ -232,9 +233,16 @@ export class Game {
     if (idx !== -1) this.state.branches.splice(idx, 1);
 
     branch.el.parentElement?.removeChild(branch.el);
-    this.audio.play(`chop_${branch.size}` as Parameters<AudioManager['play']>[0]);
 
     this.spawnChip();
+  }
+
+  private onChopStart(branch: Branch): void {
+    this.audio.play(`chop_${branch.size}` as Parameters<AudioManager['play']>[0]);
+  }
+
+  private onBranchStuck(_branch: Branch): void {
+    this.audio.play('machine_run');
   }
 
   private spawnChip(): void {
@@ -284,5 +292,87 @@ export class Game {
     window.addEventListener('resize', () => {
       this.hud.applySize();
     });
+  }
+
+  private showDebugOverlays(): void {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug')?.toLowerCase() !== 'true') return;
+
+    const b = CONFIG.machineInputBbox;
+    const box = document.createElement('div');
+    box.className = 'debug-bbox';
+    box.style.left   = `${b.xPct}%`;
+    box.style.top    = `${b.yPct}%`;
+    box.style.width  = `${b.wPct}%`;
+    box.style.height = `${b.hPct}%`;
+
+    const label = document.createElement('span');
+    label.className = 'debug-bbox__label';
+    label.textContent = 'machine input bbox';
+    box.appendChild(label);
+
+    this.dom.gameRoot.appendChild(box);
+
+    const catchPoint = document.createElement('div');
+    catchPoint.className = 'debug-catchpoint';
+    this.machine.el.appendChild(catchPoint);
+
+    const catchLabel = document.createElement('span');
+    catchLabel.className = 'debug-catchpoint__label';
+    catchLabel.textContent = 'chip catch test point';
+    catchPoint.appendChild(catchLabel);
+
+    this.startEntityBboxLoop();
+  }
+
+  private startEntityBboxLoop(): void {
+    const gameRoot = this.dom.gameRoot;
+    const overlays = new Map<HTMLElement, HTMLDivElement>();
+    const types: Array<{ selector: string; type: 'branch' | 'chip' | 'bucket' }> = [
+      { selector: '.branch', type: 'branch' },
+      { selector: '.chip',   type: 'chip' },
+      { selector: '.bucket', type: 'bucket' },
+    ];
+
+    const tick = () => {
+      const seen = new Set<HTMLElement>();
+      const gRect = gameRoot.getBoundingClientRect();
+
+      for (const { selector, type } of types) {
+        gameRoot.querySelectorAll(selector).forEach((el) => {
+          const hel = el as HTMLElement;
+          seen.add(hel);
+
+          let overlay = overlays.get(hel);
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = `debug-bbox debug-bbox--${type}`;
+            const label = document.createElement('span');
+            label.className = 'debug-bbox__label';
+            label.textContent = type;
+            overlay.appendChild(label);
+            gameRoot.appendChild(overlay);
+            overlays.set(hel, overlay);
+          }
+
+          const r = hel.getBoundingClientRect();
+          overlay.style.left   = `${r.left - gRect.left}px`;
+          overlay.style.top    = `${r.top  - gRect.top}px`;
+          overlay.style.width  = `${r.width}px`;
+          overlay.style.height = `${r.height}px`;
+        });
+      }
+
+      for (const [hel, overlay] of overlays) {
+        if (!seen.has(hel)) {
+          overlay.remove();
+          overlays.delete(hel);
+        }
+      }
+
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
   }
 }

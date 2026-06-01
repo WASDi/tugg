@@ -33,12 +33,11 @@ export class InputManager {
           branch.dragY = (branch.dragY ?? 0) + e.dy;
           branch.applyDragTransform();
         },
-        end: () => {
-          const r = branch.el.getBoundingClientRect();
+        end: (e: IE) => {
           this.callbacks.onBranchDragEnd(
             branch,
-            r.left + r.width  / 2,
-            r.top  + r.height / 2,
+            e.clientX,
+            e.clientY,
           );
         },
       },

@@ -16,9 +16,9 @@
   user-select: none;
 }
 
-/* Vibration animation when the machine is running */
+/* Vibration animation when the machine is running (5.5 Hz) */
 .machine--running {
-  animation: machine-vibrate 0.12s ease-in-out infinite;
+  animation: machine-vibrate 0.1818s ease-in-out infinite;
 }
 
 /* ── Branch inside machine ────────────────────────────────────────────────── */
@@ -37,8 +37,79 @@
   transform-origin: top center;
 }
 
-/* Extra violent vibration for a stuck branch */
-.branch--stuck {
-  animation: branch-stuck-vibrate 0.08s ease-in-out infinite;
+/* Extra violent vibration for a stuck branch, only while machine is running */
+.machine--running .branch--stuck {
+  animation: branch-stuck-vibrate 0.1818s ease-in-out infinite;
   transform-origin: top center;
 }
+
+/* ── Debug overlays (visible only when ?debug=true) ────────────────────────── */
+
+.debug-bbox {
+  position: absolute;
+  border: 1px dashed rgba(0, 255, 255, 0.9);
+  background: rgba(0, 255, 255, 0.08);
+  z-index: 8;
+  pointer-events: none;
+}
+
+.debug-bbox__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 4px;
+  font: 10px/1.2 monospace;
+  color: #0ff;
+  background: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.debug-catchpoint {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: translateY(60px);
+  border: 1px solid #f0f;
+  border-radius: 50%;
+  background: rgba(255, 0, 255, 0.3);
+  z-index: 9;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.debug-catchpoint__label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  padding: 1px 4px;
+  font: 10px/1.2 monospace;
+  color: #f0f;
+  background: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.debug-bbox--branch {
+  border-color: rgba(255, 255, 0, 0.9);
+  background: rgba(255, 255, 0, 0.08);
+  z-index: 9;
+}
+.debug-bbox--branch .debug-bbox__label { color: #ff0; }
+
+.debug-bbox--chip {
+  border-color: rgba(0, 255, 0, 0.9);
+  background: rgba(0, 255, 0, 0.08);
+  z-index: 9;
+}
+.debug-bbox--chip .debug-bbox__label { color: #0f0; }
+
+.debug-bbox--bucket {
+  border-color: rgba(255, 165, 0, 0.9);
+  background: rgba(255, 165, 0, 0.08);
+  z-index: 9;
+}
+.debug-bbox--bucket .debug-bbox__label { color: #ffa500; }

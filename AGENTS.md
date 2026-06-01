@@ -28,10 +28,15 @@ src/
     Branch.ts          Owns <div>. Fields: size, imageIndex, rotation, chopProgress, stuck, state,
                        dragX/dragY. Methods: setPosition, applyBaseTransform, applyMachineTransform,
                        applyDragTransform, commitDragPosition, transitionToMachineRotation, setStuck
-    Machine.ts         Dual-layer <div> (machine_leg + machine_body). start()/stop() toggle CSS anim.
-                       Exports MACHINE_X_PCT etc for bbox calculations.
-    Bucket.ts          Dual-layer wrapper (bucket_back + bucket_front). addChip() interpolates y-pos.
-                       setPosition(pct) / setPositionPx(px) for ground vs live-drag.
+    Machine.ts         leg <img> (direct child of #game, z=1) + wrapper <div> (z=3, holds body).
+                       start()/stop() toggle .machine--running on both so the leg vibrates in
+                       sync with the body. Exports MACHINE_X_PCT, MACHINE_W_PCT, MACHINE_ASPECT
+                       (no external consumers — machine input bbox uses CONFIG.machineInputBbox).
+    Bucket.ts          back + front <img> (direct children of #game, z=2/z=5) + wrapper <div>
+                       (z=4, holds chips). The layers are siblings of the wrapper so their
+                       z-indices work in gamespace; setPosition* repositions them to overlay
+                       the wrapper. addChip() interpolates y-pos. setPosition(pct) /
+                       setPositionPx(px) for ground vs live-drag.
     Chip.ts            Wood chip. spawnAtGround() animates fall-in. placeInBucket() reparents into bucket.
     HUD.ts             Fixed top-right panel. applySize() called on resize (vw-based, 2:1 aspect ratio).
                        onClick(cb) fires 'start'|'stop' based on which vertical half is clicked.
@@ -46,8 +51,11 @@ src/
 
   animation/
     ChopController.ts  rAF loop. addBranch() resets progress to 0. pauseAll()/resumeAll() snapshot
-                       progress for machine stop/start. Per-entry stuckRolled flag (not a shared Set).
-                       applyChopVisual() sets branch top px + --visible-pct CSS var each tick.
+                       progress for machine stop/start. Per-entry stuckRolled + chopStarted flags
+                       (not shared Sets). applyChopVisual() sets branch top px + --visible-pct
+                       CSS var each tick. Callbacks: onChopStart (first tick per branch),
+                       onBranchStuck (when stuck is set), onComplete (progress 1). chopStarted
+                       survives pauseAll so the start sound does not replay on stop/start.
     DropPhysics.ts     Animates element top% to random ground position via CSS transition.
     ZIndexManager.ts   Static Z constants: machineLeg=1, bucketBack=2, machineBody=3,
                        chipInBucket=4, bucketFront=5, branchGround=6, chipGround=7, hud=10, arrow=11.
@@ -55,7 +63,9 @@ src/
   styles/
     base.css           Reset, #game viewport, background image.
     entities.css       .branch, .bucket, .chip, .hud, .hud-arrow classes.
-    machine.css        .machine__layer, .machine--running, .branch--in-machine (clip-path mask), .branch--stuck.
+    machine.css        .machine__layer, .machine--running, .branch--in-machine (clip-path mask),
+                       .machine--running .branch--stuck (vibration scoped to running), .debug-bbox
+                       / .debug-catchpoint overlays and their --branch/--chip/--bucket variants.
     animations.css     @keyframes: machine-vibrate, branch-stuck-vibrate, arrow-bounce.
 
 public/assets/
@@ -76,13 +86,14 @@ Exception: branches inside the machine use `translateX(-50%)` only (top is contr
 During drag: accumulate `dragX`/`dragY` px deltas on the entity, call `applyDragTransform()`.
 On drag end: `commitDragPosition()` converts current screen rect → left/top % on the parent, resets drag accumulators.
 Buckets use direct `setPositionPx()` during move (no transform accumulation) so their bounding rect stays accurate for hit-testing.
+The branch drop test (machine input bbox) uses the pointer's release location from the interact.js dragend event, not the branch centre.
 
 ## Chop flow
 
-1. Branch dropped on machine input bbox → `Game.attachBranchToMachine()` → reparented into `.machine` div, `branch.el.classList.add('branch--in-machine')`, `ChopController.addBranch()`.
+1. Branch dropped on machine input bbox → `Game.attachBranchToMachine()` → reparented into `.machine` div, `branch.el.classList.add('branch--in-machine')`, `ChopController.addBranch()` (always, even when machine is stopped — the entry sits idle until resumeAll fires).
 2. ChopController rAF tick: advance `chopProgress` 0→1, set `branch.el.style.top` px, set `--visible-pct` CSS var.
 3. `clip-path: inset(0 0 calc(100% - var(--visible-pct)) 0)` hides the consumed portion.
-4. At progress 1: `onBranchChopped()` → remove element, play chop sound, `Game.spawnChip()`.
+4. At progress 1: `onBranchChopped()` → remove element, `Game.spawnChip()`. The chop sound plays on chop start (ChopController's first tick per branch, via `onChopStart`); when a branch gets stuck, the chop sound is replaced by the looping `machine_run` (via `onBranchStuck`).
 5. Branch picked back up: `onBranchDragStart()` → `chop.removeBranch()`, reparent to game root, reset progress.
 
 ## Key invariants
@@ -93,3 +104,11 @@ Buckets use direct `setPositionPx()` during move (no transform accumulation) so 
 - Chips in buckets are DOM children of `.bucket`. On drag start, `onChipDragStart` reparents to `#game` first.
 - HUD uses `position: fixed` (not absolute) so it ignores game div scroll.
 - Sounds: only one `<Audio>` element. `machine_run` loops automatically after any non-stop sound ends.
+
+## Debug mode
+
+Open with `?debug=true` to overlay debug visuals (added in `Game.showDebugOverlays()` / `startEntityBboxLoop()`):
+
+- **Cyan dashed bbox** — the machine input drop zone (`CONFIG.machineInputBbox`).
+- **Magenta dot** — the chip-catch test point (60px below the machine's bottom-centre; child of the machine so it vibrates with it).
+- **Yellow bbox per branch**, **green bbox per chip**, **orange bbox per bucket** — every matching element is mirrored each frame from `getBoundingClientRect()` onto a `pointer-events: none` overlay. Boxes for removed elements are pruned.

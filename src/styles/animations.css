@@ -1,11 +1,11 @@
 /* ── Machine vibration (running) ──────────────────────────────────────────── */
 
 @keyframes machine-vibrate {
-  0%   { transform: translate(-50%, -50%) rotate(-0.4deg) translate(0px,  0px); }
-  25%  { transform: translate(-50%, -50%) rotate( 0.3deg) translate(1px, -1px); }
-  50%  { transform: translate(-50%, -50%) rotate( 0.4deg) translate(0px,  0px); }
-  75%  { transform: translate(-50%, -50%) rotate(-0.3deg) translate(-1px, 1px); }
-  100% { transform: translate(-50%, -50%) rotate(-0.4deg) translate(0px,  0px); }
+  0%   { transform: translate(-50%, -50%) rotate(-0.1deg) translate(0px,  0px); }
+  25%  { transform: translate(-50%, -50%) rotate(0.075deg) translate(0.25px, -0.25px); }
+  50%  { transform: translate(-50%, -50%) rotate( 0.1deg) translate(0px,  0px); }
+  75%  { transform: translate(-50%, -50%) rotate(-0.075deg) translate(-0.25px, 0.25px); }
+  100% { transform: translate(-50%, -50%) rotate(-0.1deg) translate(0px,  0px); }
 }
 
 /* ── Stuck branch vibration (more violent, anchored at top centre) ────────── */
@@ -17,11 +17,11 @@
  * JS sets --branch-rot on the element when stuck is applied.
  */
 @keyframes branch-stuck-vibrate {
-  0%   { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 2deg)) translateX(-2px); }
-  25%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 3deg)) translateX( 3px); }
-  50%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 1deg)) translateX(-3px); }
-  75%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 3deg)) translateX( 2px); }
-  100% { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 2deg)) translateX(-2px); }
+  0%   { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 1deg)) translateX(-1px); }
+  25%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 1.5deg)) translateX( 1.5px); }
+  50%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) + 0.5deg)) translateX(-1.5px); }
+  75%  { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 1.5deg)) translateX( 1px); }
+  100% { transform: translate(-50%, 0) rotate(calc(var(--branch-rot, 0deg) - 1deg)) translateX(-1px); }
 }
 
 /* ── HUD arrow bounce ─────────────────────────────────────────────────────── */

@@ -3,23 +3,35 @@ import type { Branch } from '../entities/Branch';
 import type { Machine } from '../entities/Machine';
 
 type ChopCompleteCallback = (branch: Branch) => void;
+type ChopStartCallback   = (branch: Branch) => void;
+type ChopStuckCallback   = (branch: Branch) => void;
 
 interface ChopEntry {
   branch:       Branch;
   startTime:    number | null;
   baseProgress: number;   // progress snapshot when timing was last reset
   stuckRolled:  boolean;  // whether we've already rolled stuck for this entry
+  chopStarted:  boolean;  // whether the start callback has fired for this entry
 }
 
 export class ChopController {
   private entries: Map<Branch, ChopEntry> = new Map();
   private onComplete: ChopCompleteCallback;
+  private onChopStart: ChopStartCallback;
+  private onBranchStuck: ChopStuckCallback;
   private machine: Machine;
   private rafId: number | null = null;
 
-  constructor(machine: Machine, onComplete: ChopCompleteCallback) {
+  constructor(
+    machine: Machine,
+    onComplete: ChopCompleteCallback,
+    onChopStart: ChopStartCallback,
+    onBranchStuck: ChopStuckCallback,
+  ) {
     this.machine    = machine;
     this.onComplete = onComplete;
+    this.onChopStart = onChopStart;
+    this.onBranchStuck = onBranchStuck;
   }
 
   /**
@@ -35,6 +47,7 @@ export class ChopController {
       startTime:    null,
       baseProgress: 0,
       stuckRolled:  false,
+      chopStarted:  false,
     });
 
     if (this.machine.isRunning && !this.rafId) this.startLoop();
@@ -86,6 +99,10 @@ export class ChopController {
 
         if (entry.startTime === null) {
           entry.startTime = now;
+          if (!entry.chopStarted) {
+            entry.chopStarted = true;
+            this.onChopStart(entry.branch);
+          }
         }
 
         const elapsed      = now - entry.startTime;
@@ -104,6 +121,7 @@ export class ChopController {
           entry.stuckRolled = true;
           if (Math.random() < CONFIG.stuckChance) {
             entry.branch.setStuck(true);
+            this.onBranchStuck(entry.branch);
           }
         }
 
@@ -135,7 +153,7 @@ export class ChopController {
    * At progress=0 the branch bottom is at the feed hole.
    * At progress=1 the branch top is at the feed hole (fully consumed).
    */
-  private applyChopVisual(branch: Branch, progress: number): void {
+  applyChopVisual(branch: Branch, progress: number): void {
     const machineEl = branch.el.parentElement;
     if (!machineEl) return;
 

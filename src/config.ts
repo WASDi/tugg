@@ -5,15 +5,15 @@ export const CONFIG = {
   stuckMaxProgress: 0.80,
 
   branchSizes: {
-    small:  { widthVw: 3,  heightVw: 8  },
-    medium: { widthVw: 4,  heightVw: 12 },
-    large:  { widthVw: 5,  heightVw: 18 },
+    small:  { widthVw: 2,  heightVw: 6  },
+    medium: { widthVw: 3,  heightVw: 12 },
+    large:  { widthVw: 5,  heightVw: 36 },
   },
 
   chopDuration: {
-    small:  4000,
-    medium: 7000,
-    large:  12000,
+    small:  750,
+    medium: 2000,
+    large:  6000,
   },
 
   groundThresholdPct: 75,
