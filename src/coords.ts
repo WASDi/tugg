@@ -46,7 +46,12 @@ export function pointInRect(pt: Point, rect: Rect): boolean {
   );
 }
 
-/** Compute 1vw in pixels (= viewport width / 100). */
+/** Compute n vw in pixels (= viewport width / 100). */
 export function vw(n: number): number {
   return (window.innerWidth / 100) * n;
+}
+
+/** Compute n vh in pixels (= viewport height / 100). */
+export function vh(n: number): number {
+  return (window.innerHeight / 100) * n;
 }

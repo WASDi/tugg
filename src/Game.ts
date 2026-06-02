@@ -67,7 +67,7 @@ export class Game {
 
     if (this.state.arrowVisible) {
       this.state.arrowVisible = false;
-      this.hud.hideArrow();
+      this.hud.hidePrompt();
     }
 
     this.chop.resumeAll();
@@ -104,8 +104,8 @@ export class Game {
 
   private spawnBuckets(): void {
     const positions = [
-      { l: 74, t: 78 },
-      { l: 86, t: 80 },
+      { l: 90, t: 70 },
+      { l: 80, t: 90 },
     ];
     for (const pos of positions) {
       const bucket = new Bucket(this.dom.gameRoot, pos.l, pos.t);
@@ -120,6 +120,12 @@ export class Game {
     if (branch.state === 'in-machine') {
       // Pull branch out of machine: stop chopping, reparent to game root
       this.chop.removeBranch(branch);
+
+      // If no other branches are actively chopping, revert to machine-run loop
+      if (this.machine.isRunning && this.chop.activeChopCount === 0) {
+        this.audio.play('machine_run');
+      }
+
       branch.setStuck(false);
       branch.chopProgress = 0;
 
@@ -158,9 +164,8 @@ export class Game {
     }
   }
 
-  private onBucketDragEnd(bucket: Bucket, pxX: number, pxY: number): void {
-    const pct = pxToPct({ x: pxX, y: pxY });
-    bucket.setPosition(pct.x, pct.y);
+  private onBucketDragEnd(bucket: Bucket, _pxX: number, _pxY: number): void {
+    bucket.commitDragPosition();
   }
 
   private onChipDragStart(chip: Chip): void {
@@ -175,7 +180,7 @@ export class Game {
       chip.el.style.top       = `${topPct}%`;
       chip.el.style.transform = 'translate(-50%, -50%)';
       chip.el.style.zIndex    = String(7); // chipGround
-      chip.el.style.width     = '8vw';
+      chip.el.style.width     = `${8 * CONFIG.sizeFactor}vh`;
       chip.dragX = 0;
       chip.dragY = 0;
       chip.state = 'ground';
@@ -184,17 +189,31 @@ export class Game {
 
   private onChipDragEnd(chip: Chip, pxX: number, pxY: number): void {
     const targetBucket = this.bucketAtPoint({ x: pxX, y: pxY });
-    if (targetBucket && !targetBucket.isFull) {
-      // Reparent into bucket; placeInBucket handles position
-      targetBucket.addChip(chip);
-    } else {
-      chip.commitDragPosition();
-      const pct = pxToPct({ x: pxX, y: pxY });
-      if (pct.y < CONFIG.groundThresholdPct) {
-        this.drop.dropToGround(chip.el, pct.x);
+    if (targetBucket) {
+      if (!targetBucket.isFull) {
+        targetBucket.addChip(chip);
+        this.input.disableChip(chip);
+        return;
       }
+      // Full bucket — drop chip on the ground beside it
+      chip.commitDragPosition();
+      const bRect = targetBucket.el.getBoundingClientRect();
+      const bCx   = bRect.left + bRect.width / 2;
+      const bPctX = (bCx / window.innerWidth) * 100;
+      const side  = Math.random() < 0.5 ? -1 : 1;
+      const offset = 12 + Math.random() * 6;
+      let newXPct = bPctX + side * offset;
+      newXPct = Math.max(5, Math.min(newXPct, 95));
+      this.drop.dropToGround(chip.el, newXPct);
       chip.state = 'ground';
+      return;
     }
+    chip.commitDragPosition();
+    const pct = pxToPct({ x: pxX, y: pxY });
+    if (pct.y < CONFIG.groundThresholdPct) {
+      this.drop.dropToGround(chip.el, pct.x);
+    }
+    chip.state = 'ground';
   }
 
   // ── machine feeding ────────────────────────────────────────────────────────
@@ -215,12 +234,12 @@ export class Game {
     branch.dragY = 0;
 
     branch.el.style.left      = '50%';
-    branch.el.style.transform = `rotate(0deg)`; // will be replaced by transitionToMachineRotation
-
-    this.chop.applyChopVisual(branch, 0);
+    branch.el.style.transform = 'translateX(-50%) rotate(0deg)'; // will be replaced by transitionToMachineRotation
 
     branch.transitionToMachineRotation();
     branch.el.classList.add('branch--in-machine');
+
+    this.chop.applyChopVisual(branch, 0);
 
     this.chop.addBranch(branch);
   }
@@ -252,29 +271,80 @@ export class Game {
     this.input.enableChip(chip);
 
     const machineRect = this.machine.el.getBoundingClientRect();
-    const spawnPxX    = machineRect.left + machineRect.width  / 2;
-    const spawnPxY    = machineRect.bottom;
+    const spawnPxX    = machineRect.left + machineRect.width  * 0.65;
+    const spawnPxY    = machineRect.top  + machineRect.height * 0.75;
 
-    // Check if a bucket is directly below the machine output
-    const belowBucket = this.bucketAtPoint({ x: spawnPxX, y: spawnPxY + 60 });
+    // Check if a bucket is at the machine's chip output
+    const belowBucket = this.bucketAtPoint({ x: spawnPxX, y: spawnPxY });
 
     if (belowBucket && !belowBucket.isFull) {
       belowBucket.addChip(chip);
+      this.input.disableChip(chip);
     } else {
       const pct = pxToPct({ x: spawnPxX, y: spawnPxY });
-      chip.spawnAtGround(pct.x, Math.min(pct.y + 5, 92));
+      const baseX = belowBucket
+        ? this.findFreeGroundX(pct.x, Math.min(pct.y + 5, 92))
+        : pct.x;
+      const groundX = baseX + (Math.random() - 0.5) * 4;
+      chip.spawnAtGround(groundX, Math.min(pct.y + 5, 92));
     }
+  }
+
+  /**
+   * Find a ground x% that doesn't overlap with any bucket's bounding rect.
+   * Tries offsets from preferredXPct, returning the first clear position.
+   */
+  private findFreeGroundX(preferredXPct: number, groundYPct: number): number {
+    const chipW = 8;
+    const chipH = 5;
+    const offsets = [0, 10, -10, 18, -18, 26, -26, 34, -34];
+    const wWin = window.innerWidth;
+    const hWin = window.innerHeight;
+
+    for (const offset of offsets) {
+      const tryXPct = preferredXPct + offset;
+      const tryPxX = (tryXPct / 100) * wWin;
+      const tryPxY = (groundYPct / 100) * hWin;
+      const chipPxW = (chipW / 100) * wWin;
+      const chipPxH = (chipH / 100) * wWin;
+
+      const chipRect = {
+        x: tryPxX - chipPxW / 2,
+        y: tryPxY - chipPxH / 2,
+        w: chipPxW,
+        h: chipPxH,
+      };
+
+      let overlaps = false;
+      for (const bucket of this.state.buckets) {
+        const r = bucket.getBoundingRect();
+        if (
+          chipRect.x < r.left + r.width &&
+          chipRect.x + chipRect.w > r.left &&
+          chipRect.y < r.top + r.height &&
+          chipRect.y + chipRect.h > r.top
+        ) {
+          overlaps = true;
+          break;
+        }
+      }
+
+      if (!overlaps) return tryXPct;
+    }
+
+    return preferredXPct + 34;
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
   private isInMachineInput(pxX: number, pxY: number): boolean {
+    const mRect = this.machine.el.getBoundingClientRect();
     const b = CONFIG.machineInputBbox;
     return pointInRect({ x: pxX, y: pxY }, {
-      x: (b.xPct / 100) * window.innerWidth,
-      y: (b.yPct / 100) * window.innerHeight,
-      w: (b.wPct / 100) * window.innerWidth,
-      h: (b.hPct / 100) * window.innerHeight,
+      x: mRect.left + (b.xPct / 100) * mRect.width,
+      y: mRect.top  + (b.yPct / 100) * mRect.height,
+      w: (b.wPct / 100) * mRect.width,
+      h: (b.hPct / 100) * mRect.height,
     });
   }
 
@@ -311,7 +381,7 @@ export class Game {
     label.textContent = 'machine input bbox';
     box.appendChild(label);
 
-    this.dom.gameRoot.appendChild(box);
+    this.machine.el.appendChild(box);
 
     const catchPoint = document.createElement('div');
     catchPoint.className = 'debug-catchpoint';

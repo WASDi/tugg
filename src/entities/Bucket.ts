@@ -2,8 +2,8 @@ import { CONFIG } from '../config';
 import { Z } from '../animation/ZIndexManager';
 import type { Chip } from './Chip';
 
-const BUCKET_W_VW = 14;
-const BUCKET_H_VW = 15;
+const BUCKET_W_VH = 14;
+const BUCKET_H_VH = 15;
 
 export class Bucket {
   readonly el: HTMLElement;
@@ -13,8 +13,8 @@ export class Bucket {
 
   constructor(gameRoot: HTMLElement, leftPct: number, topPct: number) {
     this.el    = this.buildWrapper();
-    this.back  = this.buildLayer('/assets/images/bucket_back.png',  Z.bucketBack);
-    this.front = this.buildLayer('/assets/images/bucket_front.png', Z.bucketFront);
+    this.back  = this.buildLayer('./assets/images/bucket_back.png',  Z.bucketBack);
+    this.front = this.buildLayer('./assets/images/bucket_front.png', Z.bucketFront);
 
     gameRoot.appendChild(this.back);
     gameRoot.appendChild(this.front);
@@ -22,6 +22,9 @@ export class Bucket {
 
     this.setPosition(leftPct, topPct);
   }
+
+  dragX: number = 0;
+  dragY: number = 0;
 
   get isFull(): boolean {
     return this.chips.length >= CONFIG.bucketCapacity;
@@ -44,7 +47,7 @@ export class Bucket {
 
     const t    = capacity > 1 ? count / (capacity - 1) : 0;
     const yPct = firstYPct + (lastYPct - firstYPct) * t;
-    const xPct = 20 + Math.random() * 60;
+    const xPct = 30 + Math.random() * 40;
 
     chip.placeInBucket(this.el, xPct, yPct);
     this.chips.push(chip);
@@ -58,6 +61,12 @@ export class Bucket {
     this.back.style.top   = this.el.style.top;
     this.front.style.left = this.el.style.left;
     this.front.style.top  = this.el.style.top;
+    this.dragX = 0;
+    this.dragY = 0;
+    const bt = 'translate(-50%, -50%)';
+    this.el.style.transform   = bt;
+    this.back.style.transform  = bt;
+    this.front.style.transform = bt;
   }
 
   /** Set centre position in pixels (used during live dragging). */
@@ -70,13 +79,34 @@ export class Bucket {
     this.front.style.top  = this.el.style.top;
   }
 
+  /** Apply drag transform to wrapper + back + front (keeps all layers in sync). */
+  applyDragTransform(): void {
+    const t = `translate(calc(-50% + ${this.dragX}px), calc(-50% + ${this.dragY}px))`;
+    this.el.style.transform   = t;
+    this.back.style.transform  = t;
+    this.front.style.transform = t;
+  }
+
+  /** Commit current visual position to left/top %, then reset transforms and drag accumulators. */
+  commitDragPosition(): void {
+    const rect   = this.el.getBoundingClientRect();
+    const parent = this.el.parentElement;
+    if (!parent) return;
+    const pRect   = parent.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2 - pRect.left;
+    const cy = rect.top  + rect.height / 2 - pRect.top;
+    const leftPct = (cx / pRect.width)  * 100;
+    const topPct  = (cy / pRect.height) * 100;
+    this.setPosition(leftPct, topPct);
+  }
+
   private buildWrapper(): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.classList.add('bucket');
     Object.assign(wrapper.style, {
       position:        'absolute',
-      width:           `${BUCKET_W_VW}vw`,
-      height:          `${BUCKET_H_VW}vw`,
+      width:           `${BUCKET_W_VH * CONFIG.sizeFactor}vh`,
+      height:          `${BUCKET_H_VH * CONFIG.sizeFactor}vh`,
       cursor:          'grab',
       touchAction:     'none',
       transformOrigin: 'center center',
@@ -92,8 +122,8 @@ export class Bucket {
     img.draggable = false;
     Object.assign(img.style, {
       position:        'absolute',
-      width:           `${BUCKET_W_VW}vw`,
-      height:          `${BUCKET_H_VW}vw`,
+      width:           `${BUCKET_W_VH * CONFIG.sizeFactor}vh`,
+      height:          `${BUCKET_H_VH * CONFIG.sizeFactor}vh`,
       transform:       'translate(-50%, -50%)',
       transformOrigin: 'center center',
       zIndex:          String(z),

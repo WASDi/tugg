@@ -53,6 +53,12 @@ export class ChopController {
     if (this.machine.isRunning && !this.rafId) this.startLoop();
   }
 
+  get activeChopCount(): number {
+    let count = 0;
+    this.entries.forEach(e => { if (e.chopStarted && !e.branch.stuck) count++; });
+    return count;
+  }
+
   /**
    * Remove a branch (player picked it back up).
    */
@@ -145,33 +151,36 @@ export class ChopController {
     this.rafId = requestAnimationFrame(tick);
   }
 
-  /**
-   * Move branch downward; update clip-path via CSS custom property.
-   *
-   * Coordinate space: branch is a child of the machine div.
-   * The feed hole sits at FEED_HOLE_PCT% from the top of the machine.
-   * At progress=0 the branch bottom is at the feed hole.
-   * At progress=1 the branch top is at the feed hole (fully consumed).
-   */
   applyChopVisual(branch: Branch, progress: number): void {
     const machineEl = branch.el.parentElement;
     if (!machineEl) return;
 
+    const machineW = machineEl.offsetWidth;
     const machineH = machineEl.offsetHeight;
     const branchH  = branch.el.offsetHeight;
-    if (machineH === 0 || branchH === 0) return;
+    if (machineW === 0 || machineH === 0 || branchH === 0) return;
 
-    const feedHolePx = CONFIG.feedHolePct / 100 * machineH;
+    const rotRad = branch.rotation * Math.PI / 180;
+    const sinRot = Math.sin(rotRad);
+    const cosRot = Math.cos(rotRad);
 
-    // top of branch in machine-local px:
-    // progress=0 → bottom of branch at feed hole → top = feedHole - branchH
-    // progress=1 → top of branch at feed hole    → top = feedHole
-    const topPx = feedHolePx - branchH + branchH * progress;
-    branch.el.style.top = `${topPx}px`;
+    // Centre of the machine input bounding box (machine-local px)
+    const b = CONFIG.machineInputBbox;
+    const cx = machineW * (b.xPct + b.wPct / 2) / 100;
+    const cy = machineH * (b.yPct + b.hPct / 2) / 100;
 
-    // Visible portion = everything above the feed hole
-    const visiblePx  = Math.max(feedHolePx - topPx, 0);
-    const visiblePct = (visiblePx / branchH) * 100;
+    // With transform-origin: bottom center and transform: translateX(-50%) rotate(R),
+    // the element's bottom-centre is at (left, top + branchH).
+    // At progress=0 the bottom-centre sits at (cx, cy), then travels down
+    // along the rotated axis by d = branchH * progress.
+    const d  = branchH * progress;
+    const bx = cx - d * sinRot;
+    const by = cy + d * cosRot;
+
+    branch.el.style.left = `${bx}px`;
+    branch.el.style.top  = `${by - branchH}px`;
+
+    const visiblePct = (1 - progress) * 100;
     branch.el.style.setProperty('--visible-pct', `${visiblePct}%`);
   }
 }

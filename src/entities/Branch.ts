@@ -120,18 +120,18 @@ export class Branch {
     const div = document.createElement('div');
     div.classList.add('branch', `branch--${this.size}`);
 
-    const { widthVw, heightVw } = CONFIG.branchSizes[this.size];
+    const { widthVh, heightVh } = CONFIG.branchSizes[this.size];
+    const s = CONFIG.sizeFactor;
     Object.assign(div.style, {
       position:        'absolute',
-      width:           `${widthVw}vw`,
-      height:          `${heightVw}vw`,
-      backgroundImage: `url(/assets/images/branch${this.imageIndex}.png)`,
+      width:           `${widthVh * s}vh`,
+      height:          `${heightVh * s}vh`,
+      backgroundImage: `url(./assets/images/branch${this.imageIndex}.png)`,
       backgroundSize:  '100% 100%',
       zIndex:          String(Z.branchGround),
       cursor:          'grab',
       touchAction:     'none',
-      // Centre-referenced: left/top point to the branch centre
-      transformOrigin: 'center center',
+      // Centre-referenced by default; .branch--in-machine overrides via CSS
       willChange:      'transform',
     });
 

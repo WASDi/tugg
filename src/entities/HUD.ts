@@ -1,18 +1,18 @@
 import { CONFIG } from '../config';
 import { Z } from '../animation/ZIndexManager';
-import { vw } from '../coords';
+import { vh } from '../coords';
 
 export type HUDClickZone = 'start' | 'stop';
 
 export class HUD {
   readonly el: HTMLElement;
-  private readonly arrow: HTMLElement;
+  private readonly prompt: HTMLElement;
   private onClickCallback: ((zone: HUDClickZone) => void) | null = null;
 
   constructor(gameRoot: HTMLElement) {
     this.el = this.buildHUD();
-    this.arrow = this.buildArrow();
-    this.el.appendChild(this.arrow);
+    this.prompt = this.buildPrompt();
+    this.el.appendChild(this.prompt);
     gameRoot.appendChild(this.el);
     this.applySize();
     this.attachPointerEvents();
@@ -21,17 +21,18 @@ export class HUD {
   // ── sizing ────────────────────────────────────────────────────────────────
 
   /**
-   * Width  = CONFIG.hud.widthVw  vw
+   * Width  = CONFIG.hud.widthVh  vh
    * Height = width / CONFIG.hud.aspectRatio  (= 2× width for a 2:1 tall panel)
-   * Pinned top-right with CONFIG.hud.marginVw gap on both axes.
+   * Pinned top-right with CONFIG.hud.marginVh gap on both axes.
    *
    * Call applySize() again whenever the viewport resizes.
    */
   applySize(): void {
-    const { widthVw, aspectRatio, marginVw } = CONFIG.hud;
-    const widthPx  = vw(widthVw);
-    const heightPx = widthPx / aspectRatio;   // aspectRatio = w/h, so h = w/r
-    const marginPx = vw(marginVw);
+    const { widthVh, aspectRatio, marginVh } = CONFIG.hud;
+    const s = CONFIG.sizeFactor;
+    const widthPx  = vh(widthVh * s);
+    const heightPx = widthPx / aspectRatio;
+    const marginPx = vh(marginVh * s);
 
     Object.assign(this.el.style, {
       width:  `${widthPx}px`,
@@ -47,8 +48,8 @@ export class HUD {
     this.onClickCallback = cb;
   }
 
-  hideArrow(): void {
-    this.arrow.style.display = 'none';
+  hidePrompt(): void {
+    this.prompt.style.display = 'none';
   }
 
   // ── private construction ──────────────────────────────────────────────────
@@ -59,7 +60,7 @@ export class HUD {
     Object.assign(el.style, {
       position:        'fixed',   // fixed so it ignores game scroll
       zIndex:          String(Z.hud),
-      backgroundImage: 'url(/assets/images/hud.png)',
+      backgroundImage: 'url(./assets/images/hud.jpg)',
       backgroundSize:  '100% 100%',
       cursor:          'pointer',
       userSelect:      'none',
@@ -67,30 +68,46 @@ export class HUD {
     return el;
   }
 
-  private buildArrow(): HTMLElement {
-    const arrow = document.createElement('div');
-    arrow.classList.add('hud-arrow');
-    // Positioned in the upper half of the HUD, centred horizontally.
-    // CSS animation handles the bouncing; see animations.css.
-    Object.assign(arrow.style, {
+  private buildPrompt(): HTMLElement {
+    const circle = document.createElement('div');
+    circle.classList.add('hud-prompt');
+    Object.assign(circle.style, {
       position:   'absolute',
       left:       '50%',
-      top:        '15%',       // sits in upper-half zone
-      transform:  'translateX(-50%)',
+      top:        '38%',
+      transform:  'translate(-50%, -50%)',
       zIndex:     String(Z.arrow),
       pointerEvents: 'none',
     });
-    return arrow;
+    return circle;
+  }
+
+  private flashHalf(upper: boolean): void {
+    const flash = document.createElement('div');
+    flash.className = 'hud-flash';
+    Object.assign(flash.style, {
+      position: 'absolute',
+      left:     '0',
+      width:    '100%',
+      height:   '50%',
+      top:      upper ? '0' : '50%',
+      zIndex:   String(Z.arrow + 1),
+      pointerEvents: 'none',
+    });
+    this.el.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove(), { once: true });
   }
 
   private attachPointerEvents(): void {
-    this.el.addEventListener('pointerdown', (e: PointerEvent) => {
-      // Determine which half was clicked relative to the HUD element.
+    // Firefox mobile does not reliably allow the first audio playback from
+    // pointerdown, but it does from click on the tapped control.
+    this.el.addEventListener('click', (e: MouseEvent) => {
       const rect   = this.el.getBoundingClientRect();
       const relY   = e.clientY - rect.top;
       const midY   = rect.height / 2;
-      const zone: HUDClickZone = relY < midY ? 'start' : 'stop';
-      this.onClickCallback?.(zone);
+      const upper  = relY < midY;
+      this.flashHalf(upper);
+      this.onClickCallback?.(upper ? 'start' : 'stop');
     });
   }
 }

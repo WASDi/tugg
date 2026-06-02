@@ -1,3 +1,4 @@
+import { CONFIG } from '../config';
 import { Z } from '../animation/ZIndexManager';
 
 export type ChipState = 'ground' | 'in-bucket' | 'falling';
@@ -69,7 +70,6 @@ export class Chip {
       top:       `${yPct}%`,
       transform: 'translate(-50%, -50%)',
       zIndex:    String(Z.chipInBucket),
-      width:     '90%',
       cursor:    'grab',
       touchAction: 'none',
       opacity:   '1',
@@ -81,11 +81,12 @@ export class Chip {
   private buildChip(): HTMLElement {
     const div = document.createElement('div');
     div.classList.add('chip');
+    const s = CONFIG.sizeFactor;
     Object.assign(div.style, {
       position:        'absolute',
-      width:           '8vw',
-      height:          '5vw',
-      backgroundImage: 'url(/assets/images/chips.png)',
+      width:           `${8 * s}vh`,
+      height:          `${5 * s}vh`,
+      backgroundImage: 'url(./assets/images/chips.png)',
       backgroundSize:  '100% 100%',
       zIndex:          String(Z.chipGround),
       cursor:          'grab',

@@ -48,24 +48,19 @@ export class InputManager {
     interact(bucket.el).draggable({
       listeners: {
         move: (e: IE) => {
-          // Buckets: move left/top directly so their bounding rect stays accurate
-          const rect = bucket.el.getBoundingClientRect();
-          const parent = bucket.el.parentElement!;
-          const parentRect = parent.getBoundingClientRect();
-          const newLeft = rect.left - parentRect.left + e.dx + rect.width  / 2;
-          const newTop  = rect.top  - parentRect.top  + e.dy + rect.height / 2;
-          bucket.setPositionPx(newLeft, newTop);
+          bucket.dragX = (bucket.dragX ?? 0) + e.dx;
+          bucket.dragY = (bucket.dragY ?? 0) + e.dy;
+          bucket.applyDragTransform();
         },
         end: () => {
-          const r = bucket.el.getBoundingClientRect();
-          this.callbacks.onBucketDragEnd(
-            bucket,
-            r.left + r.width  / 2,
-            r.top  + r.height / 2,
-          );
+          this.callbacks.onBucketDragEnd(bucket, 0, 0);
         },
       },
     });
+  }
+
+  disableChip(chip: Chip): void {
+    interact(chip.el).unset();
   }
 
   enableChip(chip: Chip): void {

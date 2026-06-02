@@ -9,17 +9,24 @@
   background-size: 100% 100%;
   user-select: none;
   -webkit-user-select: none;
+  border: 0.5vh solid black;
 }
 
-/* Bouncing arrow pointing at the upper half of the HUD */
-.hud-arrow {
-  width: 40%;
-  height: 28%;
-  background-image: url('/assets/images/hud.png'); /* replaced with arrow asset when available */
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  animation: arrow-bounce 0.9s ease-in-out infinite;
+/* Pulsing circle around the start button */
+.hud-prompt {
+  width: 85%;
+  aspect-ratio: 1;
+  border: 1vh solid rgba(0, 222, 0, 0.8);
+  border-radius: 50%;
+  animation: pulse 1.2s ease-in-out infinite;
+  box-sizing: border-box;
+}
+
+/* Flash overlay for button press feedback */
+.hud-flash {
+  background: rgba(255, 255, 255, 0.5);
+  animation: hud-flash 0.25s ease-out forwards;
+  box-sizing: border-box;
 }
 
 /* ── Branches ─────────────────────────────────────────────────────────────── */
@@ -34,7 +41,7 @@
   transform-origin: center center;
 }
 
-/* Branch sizes — width/height set inline from config (vw units) */
+/* Branch sizes — width/height set inline from config (vh units) */
 .branch--small  { /* sizing applied inline */ }
 .branch--medium { /* sizing applied inline */ }
 .branch--large  { /* sizing applied inline */ }

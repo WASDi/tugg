@@ -1,13 +1,14 @@
 export const CONFIG = {
-  branchCount: 20,
+  sizeFactor: 1.4,
+  branchCount: 16,
   stuckChance: 0.30,
   stuckMinProgress: 0.20,
   stuckMaxProgress: 0.80,
 
   branchSizes: {
-    small:  { widthVw: 2,  heightVw: 6  },
-    medium: { widthVw: 3,  heightVw: 12 },
-    large:  { widthVw: 5,  heightVw: 36 },
+    small:  { widthVh: 3,  heightVh: 5  },
+    medium: { widthVh: 3,  heightVh: 10 },
+    large:  { widthVh: 4,  heightVh: 30 },
   },
 
   chopDuration: {
@@ -17,32 +18,26 @@ export const CONFIG = {
   },
 
   groundThresholdPct: 75,
-  machineInputBbox: { xPct: 42, yPct: 18, wPct: 16, hPct: 10 },
+  machineInputBbox: { xPct: 30, yPct: -10, wPct: 100, hPct: 40 },
 
-  bucketCapacity: 10,
+  bucketCapacity: 8,
   chipInBucket: {
-    firstYPct: 78,
-    lastYPct:  18,
+    firstYPct: 50,
+    lastYPct:  10,
   },
 
   /**
    * HUD sizing: width as a fraction of viewport width.
-   * Height is always 2× the computed width (2:1 aspect ratio, tall).
+   * Height = width / aspectRatio.
    * The HUD is pinned top-right with a small margin.
    */
   hud: {
-    widthVw: 8,       // 8vw wide
-    aspectRatio: 0.5, // width/height = 0.5, so height = width / 0.5 = 2×width
-    marginVw: 1,      // gap from right and top edges, in vw
+    widthVh: 10,
+    aspectRatio: 247 / 394, // width/height of hud.jpg
+    marginVh: 1,           // gap from right and top edges, in vh
   },
 
   machineRotationRange: 20,
-
-  /**
-   * Y position of the branch feeding hole as a percentage of machine height.
-   * Branches are visible above this line; hidden below it.
-   */
-  feedHolePct: 12,
 
   pileAreaPct: { xMin: 2, xMax: 28, yMin: 68, yMax: 88 },
 } as const;

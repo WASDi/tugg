@@ -34,21 +34,21 @@
   --visible-pct: 100%;
   clip-path: inset(0 0 calc(100% - var(--visible-pct)) 0 round 0px);
   z-index: auto;
-  transform-origin: top center;
+  transform-origin: bottom center;
 }
 
 /* Extra violent vibration for a stuck branch, only while machine is running */
 .machine--running .branch--stuck {
   animation: branch-stuck-vibrate 0.1818s ease-in-out infinite;
-  transform-origin: top center;
+  transform-origin: bottom center;
 }
 
 /* ── Debug overlays (visible only when ?debug=true) ────────────────────────── */
 
 .debug-bbox {
   position: absolute;
-  border: 1px dashed rgba(0, 255, 255, 0.9);
-  background: rgba(0, 255, 255, 0.08);
+  border: 1px dashed rgba(0, 255, 255, 0.35);
+  background: rgba(0, 255, 255, 0.03);
   z-index: 8;
   pointer-events: none;
 }
@@ -66,15 +66,14 @@
 
 .debug-catchpoint {
   position: absolute;
-  top: 100%;
-  left: 50%;
+  left: 65%;
+  top: 75%;
   width: 12px;
   height: 12px;
-  margin-left: -6px;
-  transform: translateY(60px);
-  border: 1px solid #f0f;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 0, 255, 0.4);
   border-radius: 50%;
-  background: rgba(255, 0, 255, 0.3);
+  background: rgba(255, 0, 255, 0.1);
   z-index: 9;
   pointer-events: none;
   box-sizing: border-box;
@@ -94,22 +93,22 @@
 }
 
 .debug-bbox--branch {
-  border-color: rgba(255, 255, 0, 0.9);
-  background: rgba(255, 255, 0, 0.08);
+  border-color: rgba(255, 255, 0, 0.35);
+  background: rgba(255, 255, 0, 0.03);
   z-index: 9;
 }
 .debug-bbox--branch .debug-bbox__label { color: #ff0; }
 
 .debug-bbox--chip {
-  border-color: rgba(0, 255, 0, 0.9);
-  background: rgba(0, 255, 0, 0.08);
+  border-color: rgba(0, 255, 0, 0.35);
+  background: rgba(0, 255, 0, 0.03);
   z-index: 9;
 }
 .debug-bbox--chip .debug-bbox__label { color: #0f0; }
 
 .debug-bbox--bucket {
-  border-color: rgba(255, 165, 0, 0.9);
-  background: rgba(255, 165, 0, 0.08);
+  border-color: rgba(255, 165, 0, 0.35);
+  background: rgba(255, 165, 0, 0.03);
   z-index: 9;
 }
 .debug-bbox--bucket .debug-bbox__label { color: #ffa500; }

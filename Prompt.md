@@ -5,7 +5,7 @@ The game is about putting tree branches into a branch shredding machine. The ini
 * The branch shredding machine in the middle
 * Two buckets to the lower right
 
-In the upper right there is a small div showing the HUD (just hud.png, configurable width/height). If the player clicks the upper half of the HUD, the machine starts (with sound effect). If clicking the lower half, the machine stops (with sound effect). When the game first loads, an animated arrow is pointing at the upper half of the HUD so the player knows they should click it. After starting the machine, the arrow disappears permanently.
+In the upper right there is a small div showing the HUD (just hud.jpg, configurable width/height). If the player clicks the upper half of the HUD, the machine starts (with sound effect). If clicking the lower half, the machine stops (with sound effect). When the game first loads, an animated arrow is pointing at the upper half of the HUD so the player knows they should click it. After starting the machine, the arrow disappears permanently.
 
 When the machine is started, it has a CSS animation so it looks like it's vibrating from its engine running. Use a minor rotation for this.
 
