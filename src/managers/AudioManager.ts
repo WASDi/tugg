@@ -15,6 +15,8 @@ const ALL_SOUNDS: SoundName[] = [
   'chop_large',
 ];
 
+const CHOP_SOUNDS: Set<SoundName> = new Set(['chop_small', 'chop_medium', 'chop_large']);
+
 export class AudioManager {
   private readonly sounds: Record<SoundName, HTMLAudioElement>;
   private lastSoundWasStop = false;
@@ -55,6 +57,26 @@ export class AudioManager {
     this.unlock();
     this.lastSoundWasStop = name === 'machine_stop';
 
+    // If machine_run is already playing, do nothing
+    if (name === 'machine_run') {
+      const run = this.sounds['machine_run'];
+      if (!run.paused && run.currentTime > 0) {
+        return;
+      }
+    }
+
+    // If a chop sound wants to start, but another chop sound is already playing
+    // with more time remaining than the new one's total duration, skip it.
+    if (CHOP_SOUNDS.has(name)) {
+      const current = this.currentlyPlayingChop();
+      if (current) {
+        const remaining = current.audio.duration - current.audio.currentTime;
+        if (remaining >= this.sounds[name].duration) {
+          return;
+        }
+      }
+    }
+
     // Pause all, clear stale onended
     for (const s of Object.values(this.sounds)) {
       s.pause();
@@ -75,6 +97,16 @@ export class AudioManager {
     }
 
     audio.play().catch(err => console.error('audio play failed', name, err));
+  }
+
+  private currentlyPlayingChop(): { audio: HTMLAudioElement } | null {
+    for (const name of CHOP_SOUNDS) {
+      const a = this.sounds[name];
+      if (!a.paused && a.currentTime > 0) {
+        return { audio: a };
+      }
+    }
+    return null;
   }
 
   stop(): void {
